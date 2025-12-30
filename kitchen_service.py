@@ -3,11 +3,16 @@ import random
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import logging
+from prometheus_fastapi_instrumentator import Instrumentator
 
 logger = logging.getLogger(__name__)
 
 
 app = FastAPI(title="Kitchen Service")
+
+# Initialize Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(app)
+
 NUM_COOKS = 1
 cook_semaphore = asyncio.Semaphore(NUM_COOKS)
 
