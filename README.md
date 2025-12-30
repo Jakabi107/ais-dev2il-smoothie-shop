@@ -60,21 +60,60 @@ logger.info(f"Smoothie with flavor {order.flavor} prepared")
 
 We want all our logging messages to contain the logging level, a timestamp when the message was logged and 
 the message itself. In addition, we want to be able to define the logging level for each logger individually.
-Download the file [logging_config.yaml](https://github.com/peterrietzler/ais-dev2il-smoothie-shop/blob/logging/logging_config.yaml)
-and store it in the root directory of the project.
-
-Stop the kitchen service and start it again using 
+- Download the file [logging_config.yaml](https://github.com/peterrietzler/ais-dev2il-smoothie-shop/blob/logging/logging_config.yaml)
+and store it in the root directory of the project. 
+- Stop the kitchen service and start it again using 
 `uv run uvicorn kitchen_service:app --port 8001 --reload --log-config logging_config.yaml`.  
 
 You can now adjust the log levels, by setting the level of detail that you want to see in `logging_config.yaml`.
+Make sure that you understand `logging_config.yaml` and how it works before you continue.
+
+# TODO - add a picture of the logging configuration here
+
+## Collecting Logs in a Central Place
+
+In order to be able to analyze logs, you need to collect the logs of all your services in a central place and
+make them searchable. 
+
+# TODO - add a picture of the logging configuration here
+
+- Download the file [logging_config_loki.yaml](https://github.com/peterrietzler/ais-dev2il-smoothie-shop/blob/logging/logging_config_loki.yaml)
+and store it in the root directory of the project.
+- Download the file [docker-compose.yml](https://github.com/peterrietzler/ais-dev2il-smoothie-shop/blob/logging/docker-compose.yml)
+and store it in the root directory of the project.
+- Start Grafana and Loki by running `docker-compose up`.
+- Stop the kitchen service and start it again using 
+`uv run uvicorn kitchen_service:app --port 8001 --reload --log-config logging_config.yaml`.
+
+Your logs are now sent to Loki in addition to the console output. You can now use Grafana to explore the logs.
+1. Open Grafana at http://localhost:3000
+1. Navigate to _Menu > Connections > Add new connection_ 
+1. Search for the _Loki_ data source and add it
+1. Set the connection URL to: `http://loki:3100`
+1. Click _Save & Test_
+1. Navigate to _Menu > Explore_ and make sure that the _Loki_ data source is selected
+
+You can either use the _Builder_  or _Code_ view to query your logs. Start off with the 
+builder, but later on get familiar with the code view as well, as this is the quickest and most 
+powerful way to explore logs. You can first build a query and then switch to the _Code_ 
+view to see the query that was generated.
+
+- Find all logs created in the last 5 minutes from the kitchen service that contain the word _cook_ 
+- Find all 503 HTTP errors across services that occurred in the last 5 minutes
 
 ### Further Readings and Exercises
 
 TODOs -
 
 merge into master
+configure loki to keep the logs in the project directory
+make sure that grafana keeps the logs
+open telemetry collector instead of sending to loki directly
 
 - Read through the [Python Logging HOWTO](https://docs.python.org/3/howto/logging.html)
 - https://docs.python.org/3/library/logging.html#
 - Introduce proper logging in the order service
 - Correlate log messages
+
+
+https://grafana.com/docs/loki/latest/query/
