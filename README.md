@@ -320,7 +320,7 @@ Tracing
 - https://opentelemetry.io/docs/concepts/
 - https://opentelemetry.io/docs/concepts/instrumentation/zero-code/
 
-## Excercises
+## Exercises
 
 ### Logging
 
