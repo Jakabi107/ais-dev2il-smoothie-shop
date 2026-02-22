@@ -2,7 +2,7 @@
 
 ## The Smoothie Shop
 
-The smoothie shop application, allows users to order delicious smoothies. It consists of two microservices:
+The smoothie shop application allows users to order delicious smoothies. It consists of two microservices:
 - The Order Service: Accepts smoothie orders
 - The Kitchen Service: Prepares the smoothies
 
@@ -31,10 +31,27 @@ so busy that the work on the requested smoothie can't be started in time. In thi
 have been easy, as the kitchen already contains a configuration parameter to increase the number of cooks
 (`NUM_COOKS`).
 
-## Providing More Insights Through Log Outputs
+## Logging
 
-We are now providing more insights into the smoothie shop by adding logging to the application. Remember 
-these hints on which logging level to choose from the [Python logging HOWTO](https://docs.python.org/3/howto/logging.html#when-to-use-logging): 
+### Providing More Insights Through Log Outputs
+
+Before we are going to start changing our services, let's get familiar with the code. 
+Have a closer look at `kitchen_service.py` and `order_service.py`. Discuss these questions with your partner:
+- How do the services work? 
+- How are are they connected to each other? 
+- Why does the kitchen sometimes returns a 503 error?
+
+We are now providing more insights into the smoothie shop by adding logging to the application. 
+
+Python's [logging module](https://docs.python.org/3/howto/logging.html) provides a flexible way 
+to record what your application is doing. A **logger** is an object that you use to write log messages. You can call 
+methods like `logger.info()`, `logger.debug()`, `logger.error()` to record messages at different severity levels. 
+
+Logging is **configurable**: you can decide where logs go (console, file, network), how they're formatted (timestamps, 
+colors), and which messages to show (e.g., only `INFO` and above, or include `DEBUG` for troubleshooting).
+
+Here are some hints on which logging level to choose from 
+the [Python logging HOWTO](https://docs.python.org/3/howto/logging.html#when-to-use-logging): 
 
 | Level     | When it’s used                                                                                       |
 |-----------|------------------------------------------------------------------------------------------------------|
@@ -44,15 +61,19 @@ these hints on which logging level to choose from the [Python logging HOWTO](htt
 | ERROR     | Due to a more serious problem, the software has not been able to perform some function.              |
 | CRITICAL  | A serious error, indicating that the program itself may be unable to continue running.               |
 
+Let's get started to modify `kitchen_service.py`.
 
-Modify `kitchen_service.py`
-
-- After the existing imports create a logger for the module
+After the existing imports create a logger for the module
 ```python
 import logging
 logger = logging.getLogger(__name__)
 ``` 
-- Add these log messages to the `prepare_smoothie` function. Find the right places to add them on your own. 
+
+💡 Using `logging.getLogger(__name__)` is a best practice. It creates a logger named after your module 
+(e.g., `kitchen_service`). This makes it easy to identify where log messages come from and allows you 
+to configure logging levels differently for each Python module.
+
+Add these log messages to the `prepare_smoothie` function. Find the right places to add them on your own. 
 ```python
 logger.info(f"Received order to prepare a smoothie with flavor {order.flavor}")
 logger.debug(f"Waiting for a cook to become available")
@@ -60,33 +81,60 @@ logger.error(f"Can't process the order: {NUM_COOKS} cooks are currently busy. Co
 logger.info(f"Smoothie with flavor {order.flavor} prepared")
 ```
 
-We want all our logging messages to contain the logging level, a timestamp when the message was logged and 
-the message itself. In addition, we want to be able to define the logging level for each logger individually.
-- Download the file [logging_config.yaml](https://github.com/peterrietzler/ais-dev2il-smoothie-shop/blob/logging/logging_config.yaml)
-and store it in the root directory of the project. 
-- Stop the kitchen service and start it again using 
-`uv run uvicorn kitchen_service:app --port 8001 --reload --log-config logging_config.yaml`.  
+**Configuring Logging:** To control how logging works, we need to configure it. Python's logging system has three main parts:
+- **Logger**: Creates log messages (what you use in your code with `logger.info()`, `logger.debug()`, etc.)
+- **Handler**: Decides where log messages go (e.g., console, file, network)
+- **Formatter**: Defines how log messages look like (e.g., add timestamp, log level, message)
 
-You can now adjust the log levels, by setting the level of detail that you want to see in `logging_config.yaml`.
-Make sure that you understand `logging_config.yaml` and how it works before you continue.
+The `logging_config.yaml` file is a YAML format that Python's logging module understands. It lets you configure 
+loggers, handlers, and formatters without changing your code.
 
 ![logging_config.yaml](logging-config.png)
 
-## Collecting Logs in a Central Place
+We want all our logging messages to contain the logging level, a timestamp when the message was logged and 
+the message itself. In addition, we want to be able to define the logging level for each logger individually. 
+
+Download the file [logging_config.yaml](https://github.com/peterrietzler/ais-dev2il-smoothie-shop/blob/logging/logging_config.yaml)
+and store it in the root directory of the project.
+
+Stop the kitchen service and start it again using 
+`uv run uvicorn kitchen_service:app --port 8001 --reload --log-config logging_config.yaml`.  
+
+🎉 You are now able to get more insights into what your application is actually doing and
+you should thus be able to figure out what is going wrong and how to fix it.
+
+💡 You can also adjust the log levels, by setting the level of detail that you want to see in `logging_config.yaml`.
+Make sure that you understand `logging_config.yaml` and how it works before you continue. Remember to restart the 
+kitchen service after you changed the logging configuration.
+
+### Collecting Logs in a Central Place
 
 In order to be able to analyze logs, you need to collect the logs of all your services in a central place and
 make them searchable. We use [Loki](https://grafana.com/oss/loki/) to store logs and [Grafana](https://grafana.com/)
 to query and visualize them.
 
+**Loki** is a log aggregation system designed to store and index logs efficiently. Think of it as a database 
+specifically built for logs. It collects log messages from all your services and stores them in one place, 
+making it easy to search through logs from multiple services at once.
+
+**Grafana** is a visualization and analytics platform. It provides a user-friendly web interface where you can 
+search, filter, and visualize your logs. While Loki stores the logs, Grafana helps you explore and understand them.
+
+![logging_config.yaml](logging-loki.png)
+
+The image above shows the updated logging configuration. Notice that we now have **two handlers**:
+1. **Console handler**: Continues to display logs in your terminal (like before)
+2. **Loki handler**: A new handler that sends the same log records to Loki over the network
+
+When a log message is created, both handlers receive it. This means your logs appear both in your terminal and in Loki.
+
 - Download the file [logging_config_loki.yaml](https://github.com/peterrietzler/ais-dev2il-smoothie-shop/blob/logging/logging_config_loki.yaml)
-and store it in the root directory of the project.
+and store it in the root directory of the project. This is the same as the previous logging configuration, but with an additional handler that sends logs to Loki.
 - Download the file [docker-compose.yml](https://github.com/peterrietzler/ais-dev2il-smoothie-shop/blob/logging/docker-compose.yml)
 and store it in the root directory of the project.
 - Start Grafana and Loki by running `docker-compose up -d`.
 - Stop the kitchen service and start it again using 
 `uv run uvicorn kitchen_service:app --port 8001 --reload --log-config logging_config_loki.yaml`.
-
-![logging_config.yaml](logging-loki.png)
 
 Your logs are now sent to Loki in addition to the console output. You can now use Grafana to explore the logs.
 1. Open Grafana at http://localhost:3000
@@ -99,10 +147,107 @@ Your logs are now sent to Loki in addition to the console output. You can now us
 You can either use the _Builder_  or _Code_ view to query your logs. Start off with the 
 builder, but later on get familiar with the code view as well, as this is the quickest and most 
 powerful way to explore logs. You can first build a query and then switch to the _Code_ 
-view to see the query that was generated.
+view to see the query that was generated. Learn more about Loki queries in the 
+[LogQL documentation](https://grafana.com/docs/loki/latest/query/).
 
 - Find all logs created in the last 5 minutes from the kitchen service that contain the word _cook_ 
 - Find all 503 HTTP errors across services that occurred in the last 5 minutes
+
+### 🚀 Level Up
+
+#### Challenge 1: Introduce Logging in the Order Service
+
+Introduce logging and log meaningful messages in the order service. Choose logging levels that make sense for the messages.
+Try to see `DEBUG` logs for the order service, but only `INFO` logs for the kitchen service.
+
+#### Challenge 2: Use Structured Information in Logs
+
+Adding structured information (extra attributes) to your log messages makes them much more 
+powerful. Instead of just text, you can attach key-value pairs like `num_cooks=3` or `flavor="Mango"`. This structured 
+data allows you to filter and query logs more precisely in Grafana/Loki. For example, you can find all logs where 
+`num_cooks < 2` or all smoothie orders for a specific flavor.
+
+Attach more information, such as the number of cooks and the number of busy cooks in the kitchen service log outputs. 
+Use extra attributes with log messages.
+
+**Example:** Instead of `logger.info(f"Processing order for {flavor}")`, use:
+```python
+logger.info("Processing order", extra={"flavor": flavor, "num_cooks": NUM_COOKS})
+```
+
+Then inspect the logs in Grafana/Loki and search for them. You can filter by these attributes using LogQL queries like 
+`{job="kitchen-service"} | flavor="Mango"` to find all logs for Mango smoothies.
+
+You can always find more information on how to use loggers by contacting the 
+[Python logging documentation](https://docs.python.org/3/library/logging.html#logging.Logger.debug)).
+
+#### Challenge 3: Store Logs in a File
+
+Logging to files gives you persistence - even if your application crashes or restarts, the logs 
+remain on disk for later inspection.
+
+Let's modify the `logging_config_loki.yaml` file to add a third handler that writes logs to a file.
+
+**Step 1:** Add a file handler to the `handlers` section:
+
+```yaml
+handlers:
+  console:
+    # ... existing console handler ...
+  
+  loki:
+    # ... existing loki handler ...
+  
+  file:
+    class: logging.FileHandler
+    formatter: console
+    filename: logs/smoothie-shop.log
+```
+
+**Step 2:** Add the `file` handler to the root logger's handler list:
+
+```yaml
+root:
+  handlers:
+    - console
+    - loki
+    - file  # Add this line
+```
+
+**Step 3:** Create the `logs/` directory and restart your service:
+
+```bash
+mkdir -p logs
+uv run uvicorn kitchen_service:app --port 8001 --reload --log-config logging_config_loki.yaml
+```
+
+**Test it:** Generate some traffic and check that `logs/smoothie-shop.log` contains your log messages:
+
+```bash
+cat logs/smoothie-shop.log
+``` 
+
+#### Pro Tip: Use a Log Collector for Reliable Log Shipping
+
+Sending log messages directly from your application to Loki has several problems:
+- If the network is down or your application crashes, logs are lost
+- If Loki is slow when accepting logs, your application will be slow as well
+- Your application becomes tightly coupled to your logging infrastructure
+
+**The better approach:** Log to standard output (stdout) or files, and use a separate log collector process that reads 
+those logs and forwards them to your logging system. This decouples your application from the logging infrastructure and 
+ensures logs are preserved even if the network fails.
+
+**Real-world cloud setups:** In production cloud environments (AWS, Azure, GCP), there are typically pre-configured tools 
+that automatically collect JSON log lines from stdout and send them to cloud-specific logging services (like Google Cloud Logging). 
+You simply write logs to stdout in JSON format, and the infrastructure handles the rest.
+
+**Open source option:** The [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) is an open source tool 
+that can collect logs from files or stdout and forward them to various destinations including Loki. It's vendor-neutral 
+and widely used.
+
+💡 **Note:** Setting up a log collector is beyond the scope of this lecture. This is provided 
+as informational background to show you how logging works in real production systems.
 
 ## Collecting Metrics with Prometheus
 
@@ -321,21 +466,6 @@ Tracing
 - https://opentelemetry.io/docs/concepts/instrumentation/zero-code/
 
 ## Exercises
-
-### Logging
-
-Introduce logging and log meaningful messages in the order service. Choose logging levels that make sense for the messages. 
-
-Attach more information, such as the number of cooks and the number of busy cooks in the kitchen service log outputs. Use extra attributes with log messages, inspect the logs in loki and search for them (see e.g. here https://docs.python.org/3/library/logging.html#logging.Logger.debug).
-
-Change the log configuration to additionally log to file. Each log record should be a JSON object. 
-
-**Advanced**: Sending log messages directly to Loki is not very nice. If e.g. the network is down or your application crashes, 
-then logs are lost. Also if Loki is slow when accepting your logs, your application will be slow as well. The common best 
-practice is to either log to standard out or to a file and then have a separate process that reads the logs from 
-there and sends them to Loki. Use the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) to read the logs
-from the previously created log file and send them to Loki. 
-
 
 ### Metrics
 
