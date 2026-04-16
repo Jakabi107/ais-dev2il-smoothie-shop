@@ -19,6 +19,9 @@ cook_semaphore = asyncio.Semaphore(NUM_COOKS)
 class SmoothieOrder(BaseModel):
     flavor: str
 
+# message on initalization
+logger.info(f"Iniatilized {__name__} with {NUM_COOKS} cook(s) available.")
+
 # Endpoint: Receives requests to prepare a smoothie
 @app.post("/prepare")
 async def prepare_smoothie(order: SmoothieOrder):
