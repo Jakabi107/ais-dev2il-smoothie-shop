@@ -25,6 +25,8 @@ loggers:
     level: DEBUG
   uvicorn:
     level: INFO
+  order_service:
+    level: DEBUG
 
 
 version: 1
