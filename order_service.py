@@ -13,6 +13,8 @@ class Order(BaseModel):
 @app.post("/order")
 async def create_order(order: Order):
     # Create an HTTP client to communicate with the kitchen service
+    # Usually Httpx is not working async - it waits until you got an answer - blocks all other code while waiting
+    # For this matter we need to create an Async Client - this can use pythons await
     async with httpx.AsyncClient() as client:
         try:
             # Send the order to the kitchen service
