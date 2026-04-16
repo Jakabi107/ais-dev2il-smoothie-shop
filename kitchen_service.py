@@ -2,7 +2,9 @@ import asyncio
 import random
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+import logging
 
+logger = logging.getLogger(__name__)
 # Create the FastAPI application
 app = FastAPI(title="Kitchen Service")
 
@@ -20,17 +22,19 @@ class SmoothieOrder(BaseModel):
 # Endpoint: Receives requests to prepare a smoothie
 @app.post("/prepare")
 async def prepare_smoothie(order: SmoothieOrder):
+    logger.info(f"Preparing smoothie for {order.flavor}")
     try:
         # Try to get a cook (wait max 2 seconds)
+        logger.debug(f"Waiting for a cook to be available")
         await asyncio.wait_for(cook_semaphore.acquire(), timeout=2.0)
     except asyncio.TimeoutError:
         # All cooks are busy and timeout reached -> reject the order
+        logger.error(f"No cook available. {NUM_COOKS} cooks are currently busy. Consider increasing the number of cooks.")
         raise HTTPException(status_code=503, detail="All cooks are currently busy")
-
     try:
         # Simulate preparing the smoothie (takes 1.5 to 2.5 seconds)
         await asyncio.sleep(random.uniform(1.5, 2.5))
-
+        logger.info(f"Finished preparing {order.flavor} smoothie")
         return {"status": "done", "flavor": order.flavor}
     finally:
         # Release the cook so they can prepare the next smoothie
