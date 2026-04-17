@@ -31,7 +31,7 @@ async def create_order(order: Order):
             return {"status": "completed", "kitchen_response": response.json()}
         except httpx.HTTPStatusError as e:
             # Kitchen returned an error (e.g., 503 if all cooks are busy)
-            logger.error(e.response.textlogger.error(f"Kitchen error - Status: {e.response.status_code}, Response: {e.response.text}"))
+            logger.error(f"Kitchen error - Status: {e.response.status_code}, Response: {e.response.text}")
             raise HTTPException(status_code=e.response.status_code, detail="Kitchen failed to process order")
         except httpx.RequestError as e:
             logger.error(f"Request error - Kitchen service is unavailable:")
