@@ -3,10 +3,23 @@ import random
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import logging
+from prometheus_fastapi_instrumentator import Instrumentator
+# Custom metric: Count smoothies ordered by flavor
+from prometheus_client import Counter
+
+
+smoothies_ordered = Counter(
+    'smoothies_ordered_total',
+    'Total number of smoothies ordered',
+    ['flavor']
+)
 
 logger = logging.getLogger(__name__)
 # Create the FastAPI application
 app = FastAPI(title="Kitchen Service")
+
+# Initialize Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(app)
 
 # Configuration: How many cooks are available in the kitchen
 NUM_COOKS = 1
@@ -25,6 +38,8 @@ logger.info(f"Iniatilized {__name__} with {NUM_COOKS} cook(s) available.")
 # Endpoint: Receives requests to prepare a smoothie
 @app.post("/prepare")
 async def prepare_smoothie(order: SmoothieOrder):
+    smoothies_ordered.labels(flavor=order.flavor).inc()
+
     logger.info(f"Preparing smoothie", extra={"tags":{"flavor": order.flavor, "num_cooks":  str(NUM_COOKS)}})
     try:
         # Try to get a cook (wait max 2 seconds)
