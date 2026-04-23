@@ -25,7 +25,7 @@ logger.info(f"Iniatilized {__name__} with {NUM_COOKS} cook(s) available.")
 # Endpoint: Receives requests to prepare a smoothie
 @app.post("/prepare")
 async def prepare_smoothie(order: SmoothieOrder):
-    logger.info(f"Preparing smoothie for {order.flavor}")
+    logger.info(f"Preparing smoothie", extra={"tags":{"flavor": order.flavor, "num_cooks":  str(NUM_COOKS)}})
     try:
         # Try to get a cook (wait max 2 seconds)
         logger.debug(f"Waiting for a cook to be available")

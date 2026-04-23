@@ -7,6 +7,17 @@ services:
     networks:
       - observability
 
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - observability
+
   grafana:
     image: grafana/grafana:10.2.3
     ports:
@@ -19,8 +30,8 @@ services:
       - observability
     depends_on:
       - loki
+      - prometheus
 
 networks:
   observability:
     driver: bridge
-
